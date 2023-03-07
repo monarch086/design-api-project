@@ -1,2 +1,2 @@
-# Design and API Project
+# Design and API Patterns Project
 
