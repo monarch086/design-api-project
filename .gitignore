@@ -12,6 +12,7 @@
 
 # Data
 *.csv
+*.txt
 *.pkl
 
 # User-specific files (MonoDevelop/Xamarin Studio)
