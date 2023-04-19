@@ -1,4 +1,3 @@
-import json
 import requests
 import re
 import time
@@ -6,6 +5,7 @@ from datetime import date, timedelta, datetime
 from bs4 import BeautifulSoup
 import json
 from collections import namedtuple
+import boto3
 
 pattern = r'\[\d+\]'
 
@@ -81,25 +81,39 @@ def parse_day(input):
     final_data = extract_text_raw(res)  
     return final_data
 
+def save_report(report_date, report):
+    table_name = 'isw-reports'
+
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(table_name)
+
+    record = {
+        'date': datetime.strftime(report_date, "%Y-%m-%d"),
+        'report': report
+    }
+
+    response = table.put_item(Item=record)
+    print('Saving report to database: ' + str(response['ResponseMetadata']['HTTPStatusCode']))
 
 def lambda_handler(event, context):
-    
-    
-    url = get_url(date.today())
+    report_date = date.today() - timedelta(days=1)
+
     if event and event.get('date'):
         print(event['date'])
-        url = get_url(datetime.strptime(event.get('date'), "%Y-%m-%d"))
-            
-            
+        report_date = datetime.strptime(event['date'], "%Y-%m-%d")
+
+    url = get_url(report_date)
     response = requests.get(url)
     
     ok = response.ok
     print('OK' if response.ok else 'Not OK' )
     
-    if not ok:
-        return ''
-        
-    else:
-        final_data = parse_day(response.text)
-        # print(final_data[:5])
-        return "\n".join(final_data)
+    final_data = ''
+    
+    if ok:
+        parsed_response = parse_day(response.text)
+        final_data = "\n".join(parsed_response)
+        save_report(report_date, final_data)
+
+    return final_data
+
