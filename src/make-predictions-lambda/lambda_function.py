@@ -2,6 +2,7 @@ import boto3
 import pickle
 from sklearn.linear_model import LogisticRegression
 import requests
+from datetime import datetime
 
 s3 = boto3.client('s3')
 bucket_name = 'alarm-ml-models-east'
@@ -13,6 +14,9 @@ regions = ['Simferopol', 'Vinnytsia', 'Lutsk', 'Dnipro', 'Donetsk', 'Zhytomyr', 
 'Odesa', 'Poltava', 'Rivne', 'Sumska', 'Ternopil', 'Kharkiv', 'Kherson', 'Khmelnytskyi',
 'Cherkasy', 'Chernivtsi', 'Chernihiv']
 
+def str2bool(v):
+  return v.lower() in ("yes", "true", "t", "1")
+
 def get_weather(region):
     print('getting weather')
     url = weather_url + "?Location=" + region
@@ -22,6 +26,26 @@ def get_weather(region):
         return data
     else:
         print(f"Getting weather ERROR: {response.status_code}")
+
+def save_prediction(region, date_of_prediction, value):
+    table_name = 'predictions'
+
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(table_name)
+    
+    now = datetime.now()
+    dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
+
+    record = {
+        'date_created': dt_string,
+        'region': region,
+        'date_of_prediction': date_of_prediction,
+        'is_alarm': value,
+        'model_version': '2023-04-20'
+    }
+
+    response = table.put_item(Item=record)
+    print('Saving prediction to database: ' + str(response['ResponseMetadata']['HTTPStatusCode']))
 
 def process_region(region, model):
     print('start processing ' + region)
@@ -54,6 +78,10 @@ def process_region(region, model):
     
     # Print the predicted value
     print(f'For {region} predicted value is {first_value}')
+    
+    now = datetime.now()
+    dt_pred_string = now.strftime("%Y-%m-%d %H:%M:%S")
+    save_prediction(region, dt_pred_string, str2bool(first_value))
 
 def lambda_handler(event, context):
     print('starting lambda')
