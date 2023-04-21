@@ -2,7 +2,7 @@ import boto3
 import pickle
 from sklearn.linear_model import LogisticRegression
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 import fnmatch
 import re
 
@@ -49,40 +49,37 @@ def save_prediction(region, date_of_prediction, value, model_date):
     response = table.put_item(Item=record)
     print('Saving prediction to database: ' + str(response['ResponseMetadata']['HTTPStatusCode']))
 
+def process_hour(region, data, model, pred_date, model_date):
+    predicted_labels = model.predict(data)
+    first_value = str(predicted_labels[0])
+
+    save_prediction(region, pred_date, str2bool(first_value), model_date)
+
 def process_region(region, model, model_date):
     print('start processing ' + region)
     
     city_resolvedAddress = 0.0 # 'Kyiv'
-    day_temp = 3.3
-    day_humidity = 80.8
-    hour_windspeed = 10.8
+    day_temp = 0.0
+    day_humidity = 0.0
+    hour_windspeed = 0.0
     hour_conditions = 0.0 # 'sunny'
     city = 0.0 # 'Kyiv'
     
     weather_data = get_weather(region)
     
-    day_temp = weather_data['days'][0]['temp']
-    # print('day_temp: ' + str(day_temp))
-    
-    day_humidity = weather_data['days'][0]['humidity']
-    # print('day_humidity: ' + str(day_humidity))
-    
-    hour_windspeed = weather_data['days'][0]['hours'][0]['windspeed']
-    # print('hour_windspeed: ' + str(hour_windspeed))
-    
-    new_data = [[city_resolvedAddress, day_temp, day_humidity, hour_windspeed, hour_conditions, city]]
-    # new_data = new_data.apply(pd.to_numeric, errors='coerce')
-    # new_data.fillna(0, inplace=True)
-    
-    predicted_labels = model.predict(new_data)
-    first_value = str(predicted_labels[0])
-    
-    # Print the predicted value
-    print(f'For {region} predicted value is {first_value}')
-    
+    data = [[city_resolvedAddress, day_temp, day_humidity, hour_windspeed, hour_conditions, city]]
     now = datetime.now()
-    dt_pred_string = now.strftime("%Y-%m-%d %H:%M:%S")
-    save_prediction(region, dt_pred_string, str2bool(first_value), model_date)
+
+    for i in range(12):
+        print(f"Iteration {i + 1}")
+        
+        day_temp = weather_data['days'][0]['temp']
+        day_humidity = weather_data['days'][0]['humidity']
+        hour_windspeed = weather_data['days'][0]['hours'][i]['windspeed']
+        
+        prediction_date = now + timedelta(hours = i)
+        prediction_date_str = prediction_date.strftime("%Y-%m-%d %H:%M:%S")
+        process_hour(region, data, model, prediction_date_str, model_date)
 
 def find_latest_model():
     match_models = []
