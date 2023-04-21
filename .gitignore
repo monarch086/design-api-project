@@ -15,6 +15,9 @@
 *.txt
 *.pkl
 
+# User folders
+python/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
@@ -449,8 +452,8 @@ $RECYCLE.BIN/
 ##
 ## Visual Studio Code
 ##
-.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
+.vscode/
+# !.vscode/settings.json
+# !.vscode/tasks.json
+# !.vscode/launch.json
+# !.vscode/extensions.json
