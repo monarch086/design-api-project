@@ -5,6 +5,7 @@ import requests
 from datetime import datetime, timedelta
 import fnmatch
 import re
+import json
 
 s3 = boto3.client('s3')
 bucket_name = 'alarm-ml-models-east'
@@ -29,29 +30,21 @@ def get_weather(region):
     else:
         print(f"Getting weather ERROR: {response.status_code}")
 
-def save_prediction(now_string, region, date_of_prediction, value, model_date):
-    table_name = 'predictions'
+def save_prediction(now_string, region, model_date, data):
+    table_name = 'predictions_v2'
 
     dynamodb = boto3.resource('dynamodb')
     table = dynamodb.Table(table_name)
 
     record = {
-        'date_created': now_string,
-        'sort_key': f'{region}|{date_of_prediction}',
         'region': region,
-        'date_of_prediction': date_of_prediction,
-        'is_alarm': value,
-        'model_version': model_date
+        'date_created': now_string,
+        'model_version': model_date,
+        'data': data
     }
 
     response = table.put_item(Item=record)
     print('Saving prediction to database: ' + str(response['ResponseMetadata']['HTTPStatusCode']))
-
-def process_hour(now_string, region, data, model, pred_date, model_date):
-    predicted_labels = model.predict(data)
-    first_value = str(predicted_labels[0])
-
-    save_prediction(now_string, region, pred_date, str2bool(first_value), model_date)
 
 def process_region(region, model, model_date):
     print('start processing ' + region)
@@ -64,10 +57,10 @@ def process_region(region, model, model_date):
     city = 0.0 # 'Kyiv'
     
     weather_data = get_weather(region)
-    
-    data = [[city_resolvedAddress, day_temp, day_humidity, hour_windspeed, hour_conditions, city]]
     now = datetime.now()
     now_string = now.strftime("%Y-%m-%d %H:%M:%S")
+    
+    prediction_data = {}
 
     for i in range(12):
         print(f"Iteration {i + 1}")
@@ -75,10 +68,16 @@ def process_region(region, model, model_date):
         day_temp = weather_data['days'][0]['temp']
         day_humidity = weather_data['days'][0]['humidity']
         hour_windspeed = weather_data['days'][0]['hours'][i]['windspeed']
+        data = [[city_resolvedAddress, day_temp, day_humidity, hour_windspeed, hour_conditions, city]]
         
         prediction_date = now + timedelta(hours = i)
         prediction_date_str = prediction_date.strftime("%Y-%m-%d %H:%M:%S")
-        process_hour(now_string, region, data, model, prediction_date_str, model_date)
+
+        predicted_labels = model.predict(data)
+        first_value = str(predicted_labels[0])
+        prediction_data[prediction_date_str] = str2bool(first_value)
+        
+    save_prediction(now_string, region, model_date, json.dumps(prediction_data))
 
 def find_latest_model():
     match_models = []
