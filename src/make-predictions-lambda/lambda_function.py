@@ -3,10 +3,12 @@ import pickle
 from sklearn.linear_model import LogisticRegression
 import requests
 from datetime import datetime
+import fnmatch
+import re
 
 s3 = boto3.client('s3')
 bucket_name = 'alarm-ml-models-east'
-file_key = '5_logistic_regression_v1.pkl'
+file_mask = '5_logistic_regression_*.pkl'
 
 weather_url = 'https://s5uukglwungpg3v5pb6jjnrl7m0fxbaw.lambda-url.us-east-1.on.aws/'
 regions = ['Simferopol', 'Vinnytsia', 'Lutsk', 'Dnipro', 'Donetsk', 'Zhytomyr', 'Uzhgorod',
@@ -27,7 +29,7 @@ def get_weather(region):
     else:
         print(f"Getting weather ERROR: {response.status_code}")
 
-def save_prediction(region, date_of_prediction, value):
+def save_prediction(region, date_of_prediction, value, model_date):
     table_name = 'predictions'
 
     dynamodb = boto3.resource('dynamodb')
@@ -41,13 +43,13 @@ def save_prediction(region, date_of_prediction, value):
         'region': region,
         'date_of_prediction': date_of_prediction,
         'is_alarm': value,
-        'model_version': '2023-04-20'
+        'model_version': model_date
     }
 
     response = table.put_item(Item=record)
     print('Saving prediction to database: ' + str(response['ResponseMetadata']['HTTPStatusCode']))
 
-def process_region(region, model):
+def process_region(region, model, model_date):
     print('start processing ' + region)
     
     city_resolvedAddress = 0.0 # 'Kyiv'
@@ -59,15 +61,14 @@ def process_region(region, model):
     
     weather_data = get_weather(region)
     
-    # print(weather_data)
     day_temp = weather_data['days'][0]['temp']
-    print('day_temp: ' + str(day_temp))
+    # print('day_temp: ' + str(day_temp))
     
     day_humidity = weather_data['days'][0]['humidity']
-    print('day_humidity: ' + str(day_humidity))
+    # print('day_humidity: ' + str(day_humidity))
     
     hour_windspeed = weather_data['days'][0]['hours'][0]['windspeed']
-    print('hour_windspeed: ' + str(hour_windspeed))
+    # print('hour_windspeed: ' + str(hour_windspeed))
     
     new_data = [[city_resolvedAddress, day_temp, day_humidity, hour_windspeed, hour_conditions, city]]
     # new_data = new_data.apply(pd.to_numeric, errors='coerce')
@@ -81,15 +82,59 @@ def process_region(region, model):
     
     now = datetime.now()
     dt_pred_string = now.strftime("%Y-%m-%d %H:%M:%S")
-    save_prediction(region, dt_pred_string, str2bool(first_value))
+    save_prediction(region, dt_pred_string, str2bool(first_value), model_date)
+
+def find_latest_model():
+    match_models = []
+    
+    # List objects in the bucket with the given prefix
+    response = s3.list_objects_v2(Bucket=bucket_name)
+    
+    # Check if there are any objects in the response
+    if 'Contents' in response:
+        for obj in response['Contents']:
+            key = obj['Key']
+            
+            if fnmatch.fnmatch(key, file_mask):
+                match_models.append(key)
+                
+        match_models.sort(reverse=True)
+        
+        if len(match_models) > 0:
+            print(f'Found latest model: {match_models[0]}')
+            return match_models[0]
+
+    return None
+
+def get_model_date(filename):
+    date_pattern = r'\d{4}-\d{2}-\d{2}'
+    
+    match = re.search(date_pattern, filename)
+
+    if match:
+        date_string = match.group(0)
+        print("Model date:", date_string)
+        
+        return date_string
+    else:
+        print("No model date found")
+        
+        return 'default'
 
 def lambda_handler(event, context):
     print('starting lambda')
     
     local_file_path = '/tmp/model.pkl'
-    s3.download_file(bucket_name, file_key, local_file_path)
+    
+    latest_model = find_latest_model()
+    if (not bool(latest_model)):
+        return
+
+    s3.download_file(bucket_name, latest_model, local_file_path)
     
     print('model downloaded')
+    
+    model_date = get_model_date(latest_model)
     
     # Load the saved model from the file
     with open(local_file_path, 'rb') as f:
@@ -98,7 +143,7 @@ def lambda_handler(event, context):
     print('model is ready')
     
     for region in regions:
-        process_region(region, model)
+        process_region(region, model, model_date)
     
     return {
         'statusCode': 200
