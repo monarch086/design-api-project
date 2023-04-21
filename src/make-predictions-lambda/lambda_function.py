@@ -8,7 +8,7 @@ s3 = boto3.client('s3')
 bucket_name = 'alarm-ml-models-east'
 file_key = '5_logistic_regression_v1.pkl'
 
-weather_url = 'https://dcdoily5ohi2vzubm5ivdsqira0gbarb.lambda-url.eu-central-1.on.aws'
+weather_url = 'https://s5uukglwungpg3v5pb6jjnrl7m0fxbaw.lambda-url.us-east-1.on.aws/'
 regions = ['Simferopol', 'Vinnytsia', 'Lutsk', 'Dnipro', 'Donetsk', 'Zhytomyr', 'Uzhgorod',
 'Zaporozhye', 'Ivano-Frankivsk', 'Kyiv', 'Kropyvnytskyi', 'Luhansk', 'L\'viv', 'Mykolaiv',
 'Odesa', 'Poltava', 'Rivne', 'Sumska', 'Ternopil', 'Kharkiv', 'Kherson', 'Khmelnytskyi',
