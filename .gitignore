@@ -15,6 +15,9 @@
 *.txt
 *.pkl
 
+# User folders
+python/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
