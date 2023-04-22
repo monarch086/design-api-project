@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.33424.131
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AlarmPrediction.WeatherLambda", "AlarmPrediction.WeatherLambda\AlarmPrediction.WeatherLambda.csproj", "{B9E6714F-3B58-4443-9794-8B3D1506333D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "weather-lambda", "AlarmPrediction.WeatherLambda\weather-lambda.csproj", "{B9E6714F-3B58-4443-9794-8B3D1506333D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "telegram-bot-lambda", "telegram-bot-lambda\telegram-bot-lambda.csproj", "{3D20401B-8BD4-4988-8ABF-2169653354BF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Utils", "Utils\Utils.csproj", "{80B871C6-BDCC-4290-8962-9588C1D1B166}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{B9E6714F-3B58-4443-9794-8B3D1506333D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B9E6714F-3B58-4443-9794-8B3D1506333D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B9E6714F-3B58-4443-9794-8B3D1506333D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D20401B-8BD4-4988-8ABF-2169653354BF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D20401B-8BD4-4988-8ABF-2169653354BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D20401B-8BD4-4988-8ABF-2169653354BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D20401B-8BD4-4988-8ABF-2169653354BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{80B871C6-BDCC-4290-8962-9588C1D1B166}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{80B871C6-BDCC-4290-8962-9588C1D1B166}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{80B871C6-BDCC-4290-8962-9588C1D1B166}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{80B871C6-BDCC-4290-8962-9588C1D1B166}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
