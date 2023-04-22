@@ -7,12 +7,16 @@ namespace AlarmPrediction.WeatherLambda
     {
         private static string WEATHER_TOKEN_PARAM_NAME = "AlarmPrediction.WeatherLambda.Token";
         private static string TELEGRAM_TOKEN_PARAM_NAME = "TelegramBot.Token";
+        private static string ALARM_PRED_HOST_PARAM_NAME = "AlarmPrediction.URL";
 
         public static async Task<string> GetWeatherApiToken() =>
             await GetParamValue(WEATHER_TOKEN_PARAM_NAME);
 
         public static async Task<string> GetTelegramToken() =>
             await GetParamValue(TELEGRAM_TOKEN_PARAM_NAME);
+
+        public static async Task<string> GetAlarmPredictionHost() =>
+            await GetParamValue(ALARM_PRED_HOST_PARAM_NAME);
 
         private static async Task<string> GetParamValue(string paramName)
         {

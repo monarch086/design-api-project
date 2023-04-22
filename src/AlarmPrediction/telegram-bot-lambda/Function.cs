@@ -11,7 +11,6 @@ namespace telegram_bot_lambda;
 
 public class Function
 {
-    private const string PREDICTION_HOST = "https://qweko3hollebocqljvjtryy46a0iczgb.lambda-url.us-east-1.on.aws";
     private HttpClient client = new HttpClient();
     private const int MESSAGE_MAX_LENGTH = 4096;
 
@@ -33,7 +32,8 @@ public class Function
 
             context.Logger.LogLine($"Region: {region}");
 
-            var predictionUrl = $"{PREDICTION_HOST}/?region={region}";
+            var predictionHost = await ParamStore.GetAlarmPredictionHost();
+            var predictionUrl = $"{predictionHost}/?region={region}";
 
             HttpResponseMessage response = await client.GetAsync(predictionUrl);
 
