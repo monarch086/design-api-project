@@ -1,5 +1,4 @@
 import React, {useEffect, useState} from 'react';
-import axios from './stub/mocks';
 import {Student} from "./models/student.model";
 import {useDispatch, useSelector} from 'react-redux';
 import {RootState} from "./store";
@@ -8,6 +7,9 @@ import Table, {Column} from './components/table';
 import Search from "./components/search";
 import Dialog from "./components/dialog";
 import styled from "styled-components";
+import axios from "axios";
+
+const retrievePredictions = 'https://qweko3hollebocqljvjtryy46a0iczgb.lambda-url.us-east-1.on.aws/';
 
 const sharedColumns = [
     {
@@ -69,10 +71,15 @@ function App() {
 
     const getStubData = (additional: boolean, skip?: number) => {
         dispatch(setLoading({additional}));
-        axios.get('/students', { params: {skip, ...(search && search.length >= 3 && { searchTerm: search })} }).then(res =>
-            dispatch(dataLoaded({additional, students: res.data}))
-        ).catch(() => dispatch(dataLoaded({ additional, students: [] })));
     }
+
+    useEffect(() => {
+        console.log("ok bro why");
+        axios.get(retrievePredictions)
+            .then(res => console.log(res?.data))
+            .catch(res => console.log(res));
+
+    }, []);
 
     useEffect( () => {
         getStubData(false, 0);

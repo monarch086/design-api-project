@@ -1,6 +1,7 @@
 {
   "name": "predictions",
   "version": "0.1.0",
+  "homepage": "https://monarch086.github.io/design-api-project/",
   "private": true,
   "dependencies": {
     "@reduxjs/toolkit": "^1.9.2",
