@@ -23,7 +23,6 @@ const StyledTable = styled.table<{ empty: boolean }>`
 `;
 
 const Td = styled.td<{ top?: boolean }>`
-    padding: 0.5rem;
     border-left: 2px solid black;
     border-bottom: 2px solid black;
     border-top: ${ props => props?.top ? '2px solid black' : 'none' };
@@ -47,9 +46,20 @@ const Tbody = styled.tbody`
     }
 `;
 
+const Empty = styled.td<{ top?: boolean }>`
+    padding: 0.5rem;
+    border-left: 2px solid black;
+    border-bottom: 2px solid black;
+    border-top: ${ props => props?.top ? '2px solid black' : 'none' };
+    
+    &:last-child {
+        border-right: 2px solid black;
+    }
+`;
 
 const Th = styled.th`
     top: 0;
+    padding: 0.5rem;
     background: white;
     position: sticky;
     border: 2px solid black;
@@ -60,9 +70,7 @@ const Th = styled.th`
     }
 `;
 
-const Tr = styled.tr`
-    height: 40px;
-`;
+const Tr = styled.tr``;
 
 const Foot = styled.tfoot`
     width: 100%;
@@ -94,11 +102,11 @@ function Table<T extends ColumnData>(
     const header = columns.map(({header}, idx) => <Th key={idx}>{header}</Th>);
 
     const empty = <Tr>
-        <Td colSpan={columns.length || 1}>Empty</Td>
+        <Empty colSpan={columns.length || 1}>Empty</Empty>
     </Tr>;
 
     const loadingTemplate = <Tr>
-        <Td colSpan={columns.length || 1}>Loading{'.'.repeat(dots)}</Td>
+        <Empty colSpan={columns.length || 1}>Loading{'.'.repeat(dots)}</Empty>
     </Tr>;
 
     useEffect(() => {

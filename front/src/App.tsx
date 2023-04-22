@@ -4,18 +4,25 @@ import styled from "styled-components";
 import axios from "axios";
 import {Prediction, PredictionColumn} from "./models/prediction.model";
 
-const retrievePredictions = 'https://qweko3hollebocqljvjtryy46a0iczgb.lambda-url.us-east-1.on.aws/';
+const updatePredictionsUrl = 'https://whyh2nljtb2reh5zunflfomxfi0rysdn.lambda-url.us-east-1.on.aws/';
+const retrievePredictionsUrl = 'https://qweko3hollebocqljvjtryy46a0iczgb.lambda-url.us-east-1.on.aws/';
 
 const Cell = styled.div`
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
 `;
 
+
 const strToLocalDate = (str: string): Date => {
     const utcDate = new Date(str);
     return new Date(utcDate.getTime() + (utcDate.getTimezoneOffset()));
 }
+
+const Info = styled.div`
+    align-self: flex-start;
+`;
 
 const Container = styled.div`
     height: 70%;
@@ -26,6 +33,38 @@ const Container = styled.div`
     gap: 2rem;
 `;
 
+const Button = styled.div`
+  cursor: pointer;
+  outline: 0;
+  color: white;
+  background-color: #9147ff;
+  display: inline-block;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 16px;
+  border-radius: .25rem;
+  
+  :hover {
+    background-color: #772ce8;
+  }
+`;
+
+const DisabledButton = styled.div`
+  outline: 0;
+  color: white;
+  background-color: #9147ff77;
+  pointer-events: none;
+  display: inline-block;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: center;
+  padding: 6px 12px;
+  font-size: 16px;
+  border-radius: .25rem;
+`;
+
 const transformPredictions = (predictions: Prediction): [Date, Date, PredictionColumn[]] => {
     const predictionsData = Object.keys(predictions.regions_forecast).map((key, id) => {
         return {
@@ -34,7 +73,6 @@ const transformPredictions = (predictions: Prediction): [Date, Date, PredictionC
             data: JSON.parse(predictions.regions_forecast[key]),
         }
     });
-    console.log(predictionsData);
     const lastModelTrainTime = strToLocalDate(predictions.last_model_train_time);
     const lastPredictionTime = strToLocalDate(`${predictions.last_prediction_time.replace(' ', 'T')}Z`);
     return [lastModelTrainTime, lastPredictionTime, predictionsData];
@@ -48,9 +86,7 @@ const getColumnsConfig = (predictions: PredictionColumn[]): Column<PredictionCol
             key: 'region',
         }];
     }
-    console.log(predictions[0].data);
     const timesColumns = Object.keys(predictions[0].data).map(key => {
-        console.log(key);
         const date = strToLocalDate(`${key.replace(' ', 'T')}Z`);
         return {
             header: `${date.getHours()}:00`,
@@ -78,28 +114,60 @@ function App() {
 
     useEffect(() => {
         setLoading(true);
-        axios.get(retrievePredictions)
+        axios.get(retrievePredictionsUrl)
             .then(res => {
+                console.log(res);
                 const [modelTrainTime, predictionTime, data] = transformPredictions(res.data);
                 setModelTrainTime(modelTrainTime);
                 setPredictionTime(predictionTime);
                 setPredictions(data);
                 setColumns(getColumnsConfig(data));
             })
-            .catch(res => setError(true))
+            .catch(() => setError(true))
             .finally(() => setLoading(false));
 
     }, []);
 
+    const updatePredictions = () => {
+        setLoading(true);
+        axios.get(updatePredictionsUrl)
+            .then(res => {
+                if (res.status === 200) {
+                    console.log("retrieving url");
+                    return axios.get(retrievePredictionsUrl)
+                } else {
+                    throw new Error('Error');
+                }
+            })
+            .then(res => {
+                const [modelTrainTime, predictionTime, data] = transformPredictions(res.data);
+                setModelTrainTime(modelTrainTime);
+                setPredictionTime(predictionTime);
+                setPredictions(data);
+                setColumns(getColumnsConfig(data));
+                setError(false);
+                setLoading(false);
+            })
+            .catch(() => {
+                setError(true);
+                setLoading(false);
+            });
+    }
+
     return <Container>
-        <div>
+        <Info>
+            { loading
+                ? <DisabledButton onClick={updatePredictions}>Refresh predictions</DisabledButton>
+                : <Button onClick={updatePredictions}>Refresh predictions</Button> }
+        </Info>
+        <Info>
             <span>Model train time: </span>
             <span>{loading ? '-' : modelTrainTime?.toLocaleDateString()}</span>
-        </div>
-        <div>
+        </Info>
+        <Info>
             <span>Prediction time: </span>
             <span>{loading ? '-' : predictionTime?.toLocaleString()}</span>
-        </div>
+        </Info>
         <Table columns={columns}
                data={predictions}
                loading={loading}

@@ -39,7 +39,8 @@ code {
 }
 
 .region-cell {
-  width: 180px;
+  width: 200px;
+  padding: 0.25rem 0.1rem;
 }
 
 .red {
