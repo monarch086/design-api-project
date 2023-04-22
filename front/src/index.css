@@ -33,3 +33,19 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.predictions-cell {
+  padding: 0 !important;
+}
+
+.region-cell {
+  width: 180px;
+}
+
+.red {
+  background-color: indianred;
+}
+
+.green {
+  background-color: lightgreen;
+}

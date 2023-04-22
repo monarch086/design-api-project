@@ -4,7 +4,7 @@ import styled, {css} from "styled-components";
 export type ColumnTemplate<T> = (row: T) => ReactNode;
 export type ColumnData = { id: number | string };
 
-export type Column<T extends ColumnData> = { header?: string } &
+export type Column<T extends ColumnData> = { header?: string, styleClass?: string } &
     ({ body: ColumnTemplate<T> } | { key: keyof T & (string | number) });
 
 const TableContainer = styled.div`
@@ -15,11 +15,10 @@ const TableContainer = styled.div`
     position: relative;   
 `;
 
-
 const StyledTable = styled.table<{ empty: boolean }>`
     width: 100%;
     border-spacing: 0;
-    table-layout: fixed;
+    table-layout: auto;
     height: ${ props => props?.empty ? '100%' : 'none' };
 `;
 
@@ -76,42 +75,24 @@ function Table<T extends ColumnData>(
     {
         columns,
         data,
-        loadMore,
-        rowClick,
         loading,
-        additionalLoading,
-        error,
-        threshold = 10.0
+        error
     }: {
         columns: Column<T>[],
         data: T[],
-        rowClick?: (data: T, ev: React.MouseEvent) => void,
-        loadMore?: (count: number) => void,
         loading: boolean,
         error: boolean,
-        additionalLoading: boolean,
-        threshold?: number
     }) {
     const [dots, setDots] = useState(0);
 
     const createRow = (row: T) => columns.map((column, idx) =>
-        <Td key={idx} onClick={ev => rowClick?.(row, ev)}>
+        <Td key={idx} className={column?.styleClass}>
             {'body' in column ? column.body(row) : `${row[column.key]}`}
         </Td>);
 
     const body = data.map(row => <Tr key={row.id}>{createRow(row)}</Tr>);
     const header = columns.map(({header}, idx) => <Th key={idx}>{header}</Th>);
 
-    const scroll = (event: React.UIEvent) => {
-        if (loading || additionalLoading) {
-            return;
-        }
-        const element = event.target as HTMLElement;
-        const scrolled = Math.abs(element.scrollHeight - element.scrollTop - element.clientHeight) <= threshold;
-        if (scrolled) {
-            loadMore && loadMore(loading ? 0 : data.length);
-        }
-    }
     const empty = <Tr>
         <Td colSpan={columns.length || 1}>Empty</Td>
     </Tr>;
@@ -127,7 +108,7 @@ function Table<T extends ColumnData>(
         return () => clearInterval(intervalId);
     }, []);
 
-    return <TableContainer onScroll={scroll}>
+    return <TableContainer>
         <StyledTable empty={!data?.length}>
             <Thead>
             <Tr>{header}</Tr>
@@ -136,7 +117,7 @@ function Table<T extends ColumnData>(
             <Foot>
             <Tr>
                 <Td top colSpan={columns.length || 1}>
-                    {additionalLoading ? 'Loading...' : (error ? 'Error loading data' : `${loading ? 0 : data.length} items`)}
+                    {error ? 'Error loading data' : `${loading ? 0 : data.length} items`}
                 </Td>
             </Tr>
             </Foot>

@@ -1,47 +1,21 @@
 import React, {useEffect, useState} from 'react';
-import {Student} from "./models/student.model";
-import {useDispatch, useSelector} from 'react-redux';
-import {RootState} from "./store";
-import {dataLoaded, setLoading} from "./store/studentsState";
 import Table, {Column} from './components/table';
-import Search from "./components/search";
-import Dialog from "./components/dialog";
 import styled from "styled-components";
 import axios from "axios";
+import {Prediction, PredictionColumn} from "./models/prediction.model";
 
 const retrievePredictions = 'https://qweko3hollebocqljvjtryy46a0iczgb.lambda-url.us-east-1.on.aws/';
 
-const sharedColumns = [
-    {
-        header: 'Name',
-        key: 'name',
-    },
-    {
-        header: 'Lectures attended',
-        key: 'lecturesAttended',
-    },
-    {
-        header: 'Total lectures',
-        key: 'totalLectures',
-    },
-];
+const Cell = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+`;
 
-const columnsConfig: Column<Student>[] = [
-    {
-        header: 'Id',
-        key: 'id',
-    },
-    ...sharedColumns as Column<Student>[],
-    {
-        header: 'Grades',
-        body: row => {
-            const subjects = Object.values(row.marks);
-            const max = subjects.reduce((prev, subject ) => prev + subject.totalMarks, 0);
-            const current = subjects.reduce((prev, subject ) => prev + subject.marksObtained, 0);
-            return <span>{ `${current}/${max}` }</span>;
-        }
-    }
-];
+const strToLocalDate = (str: string): Date => {
+    const utcDate = new Date(str);
+    return new Date(utcDate.getTime() + (utcDate.getTimezoneOffset()));
+}
 
 const Container = styled.div`
     height: 70%;
@@ -52,76 +26,84 @@ const Container = styled.div`
     gap: 2rem;
 `;
 
-const Columns = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.25rem;
-`;
+const transformPredictions = (predictions: Prediction): [Date, Date, PredictionColumn[]] => {
+    const predictionsData = Object.keys(predictions.regions_forecast).map((key, id) => {
+        return {
+            id,
+            region: key,
+            data: JSON.parse(predictions.regions_forecast[key]),
+        }
+    });
+    console.log(predictionsData);
+    const lastModelTrainTime = strToLocalDate(predictions.last_model_train_time);
+    const lastPredictionTime = strToLocalDate(`${predictions.last_prediction_time.replace(' ', 'T')}Z`);
+    return [lastModelTrainTime, lastPredictionTime, predictionsData];
+}
 
+const getColumnsConfig = (predictions: PredictionColumn[]): Column<PredictionColumn>[] => {
+    if (!predictions?.length) {
+        return [{
+            header: 'Region',
+            styleClass: 'region-cell',
+            key: 'region',
+        }];
+    }
+    console.log(predictions[0].data);
+    const timesColumns = Object.keys(predictions[0].data).map(key => {
+        console.log(key);
+        const date = strToLocalDate(`${key.replace(' ', 'T')}Z`);
+        return {
+            header: `${date.getHours()}:00`,
+            styleClass: 'predictions-cell',
+            body: (row: PredictionColumn) => {
+                return <Cell className={row.data[key] ? 'red' : 'green'}>{row.data[key] ? '+' : '-'}</Cell>
+            }
+        }
+    });
+    return [{
+        header: 'Region',
+        styleClass: 'region-cell',
+        key: 'region',
+    },
+        ...timesColumns];
+}
 
 function App() {
-    const dispatch = useDispatch();
-    const [search, setSearch] = useState('');
-    const [dialogData, setDialogData] = useState<Student | null>(null);
-
-    const state = useSelector((state: RootState) => state.students);
-    const error = useSelector((state: RootState) => state.students.initialLoading === 'error');
-    const loading = useSelector((state: RootState) => state.students.initialLoading === 'loading');
-    const additionalLoading = useSelector((state: RootState) => state.students.additionalLoading === 'loading');
-
-    const getStubData = (additional: boolean, skip?: number) => {
-        dispatch(setLoading({additional}));
-    }
+    const [error, setError] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [modelTrainTime, setModelTrainTime] = useState<Date>();
+    const [predictionTime, setPredictionTime] = useState<Date>();
+    const [predictions, setPredictions] = useState<PredictionColumn[]>([]);
+    const [columns, setColumns] = useState<Column<PredictionColumn>[]>(getColumnsConfig([]));
 
     useEffect(() => {
-        console.log("ok bro why");
+        setLoading(true);
         axios.get(retrievePredictions)
-            .then(res => console.log(res?.data))
-            .catch(res => console.log(res));
+            .then(res => {
+                const [modelTrainTime, predictionTime, data] = transformPredictions(res.data);
+                setModelTrainTime(modelTrainTime);
+                setPredictionTime(predictionTime);
+                setPredictions(data);
+                setColumns(getColumnsConfig(data));
+            })
+            .catch(res => setError(true))
+            .finally(() => setLoading(false));
 
     }, []);
 
-    useEffect( () => {
-        getStubData(false, 0);
-    }, [search]);
-
-    const rowClicked = (row: Student) => {
-        setDialogData(row);
-    }
-
     return <Container>
-        <Search search={value => setSearch(value.toLowerCase())}></Search>
-        <Table columns={columnsConfig}
-               data={loading ? [] : state.students}
+        <div>
+            <span>Model train time: </span>
+            <span>{loading ? '-' : modelTrainTime?.toLocaleDateString()}</span>
+        </div>
+        <div>
+            <span>Prediction time: </span>
+            <span>{loading ? '-' : predictionTime?.toLocaleString()}</span>
+        </div>
+        <Table columns={columns}
+               data={predictions}
                loading={loading}
-               error={error}
-               additionalLoading={additionalLoading}
-               threshold={250}
-               loadMore={count => getStubData(true, count)}
-               rowClick={rowClicked}
-        ></Table>
-        <Dialog show={!!dialogData} title={ dialogData?.name! } onClose={() => setDialogData(null)}>
-            {
-                dialogData ? <Columns>
-                    {
-                        sharedColumns.slice(1).map((col, idx) => <React.Fragment key={idx}>
-                            <span>{ col.header }</span>
-                            <span>{ dialogData[col.key as keyof Student] as string }</span>
-                        </React.Fragment>)
-                    }
-                    {
-                        Object.values(dialogData.marks).map((lesson, idx) => <React.Fragment key={idx}>
-                            <span>{ lesson.subjectTitle }</span>
-                            <span></span>
-                            <span>Marks obtained</span>
-                            <span>{ lesson.marksObtained }</span>
-                            <span>Total marks</span>
-                            <span>{ lesson.totalMarks }</span>
-                        </React.Fragment>)
-                    }
-                </Columns> : null
-            }
-        </Dialog>
+               error={error}></Table>
     </Container>
 }
 
