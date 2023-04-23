@@ -1,4 +1,3 @@
-@@ -0,0 +1,186 @@
 import React, {useEffect, useState} from 'react';
 import Table, {Column} from './components/table';
 import styled from "styled-components";
