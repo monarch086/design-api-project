@@ -40,7 +40,7 @@ public class Function
             var token = await ParamStore.GetTelegramToken();
             var bot = new ChatBot(token);
 
-            var prediction = (await response.Content.ReadAsStringAsync()).Truncate(MESSAGE_MAX_LENGTH);
+            var prediction = (await response.Content.ReadAsStringAsync());
 
             if (!response.IsSuccessStatusCode || string.IsNullOrEmpty(prediction))
             {
@@ -52,7 +52,9 @@ public class Function
 
             context.Logger.LogInformation($"Requesting prediction for {region}: {prediction}.");
 
-            await bot.Post(prediction, chatId);
+            var pred_message = prediction.ToMessage().Truncate(MESSAGE_MAX_LENGTH);
+
+            await bot.Post(pred_message, chatId);
         }
         catch (Exception ex)
         {
