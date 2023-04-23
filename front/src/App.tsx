@@ -1,3 +1,4 @@
+@@ -0,0 +1,186 @@
 import React, {useEffect, useState} from 'react';
 import Table, {Column} from './components/table';
 import styled from "styled-components";
@@ -67,12 +68,21 @@ const DisabledButton = styled.div`
 
 const transformPredictions = (predictions: Prediction): [Date, Date, PredictionColumn[]] => {
     const predictionsData = Object.keys(predictions.regions_forecast).map((key, id) => {
+        const rawData = JSON.parse(predictions.regions_forecast[key]);
+        const data = Object.keys(rawData).reduce((obj: PredictionColumn['data'], key) => {
+            const date = strToLocalDate(`${key.replace(' ', 'T')}Z`);
+            const newKey = `${date.getHours()}:00`;
+            obj[newKey] = rawData[key];
+            return obj;
+        }, {});
+
         return {
             id,
+            data,
             region: key,
-            data: JSON.parse(predictions.regions_forecast[key]),
         }
     });
+    console.log(predictionsData);
     const lastModelTrainTime = strToLocalDate(predictions.last_model_train_time);
     const lastPredictionTime = strToLocalDate(`${predictions.last_prediction_time.replace(' ', 'T')}Z`);
     return [lastModelTrainTime, lastPredictionTime, predictionsData];
@@ -87,9 +97,8 @@ const getColumnsConfig = (predictions: PredictionColumn[]): Column<PredictionCol
         }];
     }
     const timesColumns = Object.keys(predictions[0].data).map(key => {
-        const date = strToLocalDate(`${key.replace(' ', 'T')}Z`);
         return {
-            header: `${date.getHours()}:00`,
+            header: key,
             styleClass: 'predictions-cell',
             body: (row: PredictionColumn) => {
                 return <Cell className={row.data[key] ? 'red' : 'green'}>{row.data[key] ? '+' : '-'}</Cell>
